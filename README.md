@@ -45,21 +45,21 @@ Enter your choice:
 
 Example: Adding a Patient
 --- Add Patient ---
-Name: John Doe
-Age: 30
+Name: Bikram Patel
+Age: 17
 Gender: Male
-Disease: Flu
-Contact: 9876543210
-Patient added: ID: 1 | Name: John Doe | Age: 30 | Gender: Male | Disease: Flu | Contact: 9876543210
+Disease: Chlorea
+Contact: 9812345678
+Patient added: ID: 1 | Name: Bikram Patel | Age: 17 | Gender: Male | Disease: Chlorea | Contact: 9812345678
 
 Example: Viewing All Patients
 --- All Patients ---
-ID: 1 | Name: John Doe | Age: 30 | Gender: Male | Disease: Flu | Contact: 9876543210
+ID: 1 | Name: Bikram Patel | Age: 17 | Gender: Male | Disease: Chlorea | Contact: 9812345678
 
 📊 Example patients.csv File
 id,name,age,gender,disease,contact
-1,John Doe,30,Male,Flu,9876543210
-2,Jane Smith,25,Female,Asthma,9123456789
+1,Bikram Patel,17,Male,Chlorea,9812345678
+2,Sagar Kumar Patel,20,Male,Fever,912345687
 
 🌟 Future Enhancements
 
