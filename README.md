@@ -25,7 +25,7 @@ Hospital-Patient-Record-System/
 
 ⚡ Getting Started
 1️⃣ Clone the repository
-git clone https://github.com/your-username/Hospital-Patient-Record-System.git
+git clone https://github.com/sagarkumarpatel/Hospital-Patient-Record-System
 cd Hospital-Patient-Record-System
 
 2️⃣ Compile the program
