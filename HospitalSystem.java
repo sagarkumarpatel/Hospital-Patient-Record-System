@@ -1,16 +1,6 @@
 import java.io.*;
 import java.util.*;
 
-/**
- * HospitalSystem.java
- * Simple console-based Hospital Patient Record System using CSV file storage.
- *
- * Usage:
- *   javac HospitalSystem.java
- *   java HospitalSystem
- *
- * The program will create/read "patients.csv" in the same folder.
- */
 public class HospitalSystem {
 
     // --- Model: Patient ---
@@ -21,24 +11,28 @@ public class HospitalSystem {
         String gender;
         String disease;
         String contact;
+        String ward;
+        String doctorAssigned;
 
-        Patient(int id, String name, int age, String gender, String disease, String contact) {
+        Patient(int id, String name, int age, String gender, String disease, String contact, String ward, String doctorAssigned) {
             this.id = id;
             this.name = name;
             this.age = age;
             this.gender = gender;
             this.disease = disease;
             this.contact = contact;
+            this.ward = ward;
+            this.doctorAssigned = doctorAssigned;
         }
 
-        // CSV line (no commas escaping; keep fields simple)
+        // CSV line
         String toCSV() {
-            return id + "," + name + "," + age + "," + gender + "," + disease + "," + contact;
+            return id + "," + name + "," + age + "," + gender + "," + disease + "," + contact + "," + ward + "," + doctorAssigned;
         }
 
         static Patient fromCSV(String line) {
             String[] p = line.split(",", -1);
-            if (p.length < 6) return null;
+            if (p.length < 8) return null;
             try {
                 int id = Integer.parseInt(p[0]);
                 String name = p[1];
@@ -46,19 +40,21 @@ public class HospitalSystem {
                 String gender = p[3];
                 String disease = p[4];
                 String contact = p[5];
-                return new Patient(id, name, age, gender, disease, contact);
+                String ward = p[6];
+                String doctor = p[7];
+                return new Patient(id, name, age, gender, disease, contact, ward, doctor);
             } catch (Exception e) {
                 return null;
             }
         }
 
         public String toString() {
-            return String.format("ID: %d | Name: %s | Age: %d | Gender: %s | Disease: %s | Contact: %s",
-                    id, name, age, gender, disease, contact);
+            return String.format("ID: %d | Name: %s | Age: %d | Gender: %s | Disease: %s | Contact: %s | Ward: %s | Doctor: %s",
+                    id, name, age, gender, disease, contact, ward, doctorAssigned);
         }
     }
 
-    // --- Manager: holds patients and handles file I/O ---
+    // --- Manager ---
     static class PatientManager {
         private List<Patient> patients = new ArrayList<>();
         private String filename;
@@ -78,7 +74,6 @@ public class HospitalSystem {
                 while ((line = br.readLine()) != null) {
                     line = line.trim();
                     if (line.isEmpty()) continue;
-                    // skip header if exists
                     if (firstLine && line.toLowerCase().startsWith("id,")) {
                         firstLine = false;
                         continue;
@@ -96,7 +91,7 @@ public class HospitalSystem {
 
         private void saveToFile() {
             try (PrintWriter pw = new PrintWriter(new FileWriter(filename))) {
-                pw.println("id,name,age,gender,disease,contact");
+                pw.println("id,name,age,gender,disease,contact,ward,doctor");
                 for (Patient p : patients) {
                     pw.println(p.toCSV());
                 }
@@ -105,8 +100,8 @@ public class HospitalSystem {
             }
         }
 
-        Patient addPatient(String name, int age, String gender, String disease, String contact) {
-            Patient p = new Patient(nextId++, name, age, gender, disease, contact);
+        Patient addPatient(String name, int age, String gender, String disease, String contact, String ward, String doctor) {
+            Patient p = new Patient(nextId++, name, age, gender, disease, contact, ward, doctor);
             patients.add(p);
             saveToFile();
             return p;
@@ -117,16 +112,32 @@ public class HospitalSystem {
             return null;
         }
 
-        List<Patient> findByName(String partialName) {
+        List<Patient> findByName(String query) {
+            return searchField(query, p -> p.name);
+        }
+
+        List<Patient> findByDisease(String query) {
+            return searchField(query, p -> p.disease);
+        }
+
+        List<Patient> findByWard(String query) {
+            return searchField(query, p -> p.ward);
+        }
+
+        List<Patient> findByDoctor(String query) {
+            return searchField(query, p -> p.doctorAssigned);
+        }
+
+        private List<Patient> searchField(String query, java.util.function.Function<Patient, String> fieldGetter) {
             List<Patient> res = new ArrayList<>();
-            String q = partialName.toLowerCase();
+            String q = query.toLowerCase();
             for (Patient p : patients) {
-                if (p.name.toLowerCase().contains(q)) res.add(p);
+                if (fieldGetter.apply(p).toLowerCase().contains(q)) res.add(p);
             }
             return res;
         }
 
-        boolean updatePatient(int id, String name, Integer age, String gender, String disease, String contact) {
+        boolean updatePatient(int id, String name, Integer age, String gender, String disease, String contact, String ward, String doctor) {
             Patient p = findById(id);
             if (p == null) return false;
             if (name != null) p.name = name;
@@ -134,6 +145,8 @@ public class HospitalSystem {
             if (gender != null) p.gender = gender;
             if (disease != null) p.disease = disease;
             if (contact != null) p.contact = contact;
+            if (ward != null) p.ward = ward;
+            if (doctor != null) p.doctorAssigned = doctor;
             saveToFile();
             return true;
         }
@@ -166,29 +179,15 @@ public class HospitalSystem {
             String choice = sc.nextLine().trim();
 
             switch (choice) {
-                case "1":
-                    addPatientUI(sc, pm);
-                    break;
-                case "2":
-                    searchPatientUI(sc, pm);
-                    break;
-                case "3":
-                    updatePatientUI(sc, pm);
-                    break;
-                case "4":
-                    deletePatientUI(sc, pm);
-                    break;
-                case "5":
-                    viewAllUI(pm);
-                    break;
-                case "6":
-                    System.out.println("Goodbye!");
-                    sc.close();
-                    return;
-                default:
-                    System.out.println("Invalid choice. Try again.");
+                case "1": addPatientUI(sc, pm); break;
+                case "2": searchPatientUI(sc, pm); break;
+                case "3": updatePatientUI(sc, pm); break;
+                case "4": deletePatientUI(sc, pm); break;
+                case "5": viewAllUI(pm); break;
+                case "6": System.out.println("Goodbye!"); sc.close(); return;
+                default: System.out.println("Invalid choice. Try again.");
             }
-            System.out.println(); // blank line for readability
+            System.out.println();
         }
     }
 
@@ -213,30 +212,51 @@ public class HospitalSystem {
         String disease = sc.nextLine().trim();
         System.out.print("Contact: ");
         String contact = sc.nextLine().trim();
+        System.out.print("Ward: ");
+        String ward = sc.nextLine().trim();
+        System.out.print("Doctor Assigned: ");
+        String doctor = sc.nextLine().trim();
 
-        Patient p = pm.addPatient(name, age, gender, disease, contact);
+        Patient p = pm.addPatient(name, age, gender, disease, contact, ward, doctor);
         System.out.println("Patient added: " + p);
     }
 
     private static void searchPatientUI(Scanner sc, PatientManager pm) {
         System.out.println("--- Search Patient ---");
-        System.out.println("a) By ID   b) By Name");
-        System.out.print("Choose (a/b): ");
+        System.out.println("a) By ID");
+        System.out.println("b) By Name");
+        System.out.println("c) By Disease");
+        System.out.println("d) By Ward");
+        System.out.println("e) By Doctor Assigned");
+        System.out.print("Choose (a-e): ");
         String opt = sc.nextLine().trim().toLowerCase();
-        if (opt.equals("a")) {
-            int id = readInt(sc, "Enter ID: ");
-            Patient p = pm.findById(id);
-            if (p != null) System.out.println(p);
-            else System.out.println("No patient with ID " + id);
-        } else {
-            System.out.print("Enter name or part of name: ");
-            String name = sc.nextLine().trim();
-            List<Patient> res = pm.findByName(name);
-            if (res.isEmpty()) System.out.println("No matches.");
-            else {
-                for (Patient p : res) System.out.println(p);
-            }
+
+        switch (opt) {
+            case "a":
+                int id = readInt(sc, "Enter ID: ");
+                Patient p = pm.findById(id);
+                System.out.println(p != null ? p : "No patient with ID " + id);
+                break;
+            case "b":
+                listResults(pm.findByName(readLine(sc, "Enter name or part of name: ")));
+                break;
+            case "c":
+                listResults(pm.findByDisease(readLine(sc, "Enter disease: ")));
+                break;
+            case "d":
+                listResults(pm.findByWard(readLine(sc, "Enter ward: ")));
+                break;
+            case "e":
+                listResults(pm.findByDoctor(readLine(sc, "Enter doctor name: ")));
+                break;
+            default:
+                System.out.println("Invalid option.");
         }
+    }
+
+    private static void listResults(List<Patient> list) {
+        if (list.isEmpty()) System.out.println("No matches.");
+        else list.forEach(System.out::println);
     }
 
     private static void updatePatientUI(Scanner sc, PatientManager pm) {
@@ -250,29 +270,26 @@ public class HospitalSystem {
         System.out.println("Current: " + p);
         System.out.println("Press Enter without typing to keep existing value.");
 
-        System.out.print("New name (" + p.name + "): ");
-        String name = sc.nextLine();
-        name = name.trim().isEmpty() ? null : name.trim();
-
-        System.out.print("New age (" + p.age + "): ");
-        String ageStr = sc.nextLine().trim();
+        String name = readOptional(sc, "New name (" + p.name + "): ");
+        String ageStr = readOptional(sc, "New age (" + p.age + "): ");
         Integer age = ageStr.isEmpty() ? null : tryParseInt(ageStr);
+        String gender = readOptional(sc, "New gender (" + p.gender + "): ");
+        String disease = readOptional(sc, "New disease (" + p.disease + "): ");
+        String contact = readOptional(sc, "New contact (" + p.contact + "): ");
+        String ward = readOptional(sc, "New ward (" + p.ward + "): ");
+        String doctor = readOptional(sc, "New doctor (" + p.doctorAssigned + "): ");
 
-        System.out.print("New gender (" + p.gender + "): ");
-        String gender = sc.nextLine();
-        gender = gender.trim().isEmpty() ? null : gender.trim();
+        boolean ok = pm.updatePatient(id, 
+            name.isEmpty() ? null : name, 
+            age, 
+            gender.isEmpty() ? null : gender,
+            disease.isEmpty() ? null : disease,
+            contact.isEmpty() ? null : contact,
+            ward.isEmpty() ? null : ward,
+            doctor.isEmpty() ? null : doctor
+        );
 
-        System.out.print("New disease (" + p.disease + "): ");
-        String disease = sc.nextLine();
-        disease = disease.trim().isEmpty() ? null : disease.trim();
-
-        System.out.print("New contact (" + p.contact + "): ");
-        String contact = sc.nextLine();
-        contact = contact.trim().isEmpty() ? null : contact.trim();
-
-        boolean ok = pm.updatePatient(id, name, age, gender, disease, contact);
-        if (ok) System.out.println("Patient updated.");
-        else System.out.println("Update failed.");
+        System.out.println(ok ? "Patient updated." : "Update failed.");
     }
 
     private static void deletePatientUI(Scanner sc, PatientManager pm) {
@@ -288,8 +305,7 @@ public class HospitalSystem {
         String confirm = sc.nextLine().trim().toLowerCase();
         if (confirm.equals("y") || confirm.equals("yes")) {
             boolean ok = pm.deletePatient(id);
-            if (ok) System.out.println("Deleted.");
-            else System.out.println("Delete failed.");
+            System.out.println(ok ? "Deleted." : "Delete failed.");
         } else {
             System.out.println("Delete cancelled.");
         }
@@ -298,14 +314,11 @@ public class HospitalSystem {
     private static void viewAllUI(PatientManager pm) {
         System.out.println("--- All Patients ---");
         List<Patient> all = pm.getAll();
-        if (all.isEmpty()) {
-            System.out.println("No records.");
-            return;
-        }
-        for (Patient p : all) System.out.println(p);
+        if (all.isEmpty()) System.out.println("No records.");
+        else all.forEach(System.out::println);
     }
 
-    // --- small helpers ---
+    // --- helpers ---
     private static int readInt(Scanner sc, String prompt) {
         while (true) {
             System.out.print(prompt);
@@ -316,6 +329,16 @@ public class HospitalSystem {
                 System.out.println("Please enter a valid integer.");
             }
         }
+    }
+
+    private static String readLine(Scanner sc, String prompt) {
+        System.out.print(prompt);
+        return sc.nextLine().trim();
+    }
+
+    private static String readOptional(Scanner sc, String prompt) {
+        System.out.print(prompt);
+        return sc.nextLine().trim();
     }
 
     private static Integer tryParseInt(String s) {
